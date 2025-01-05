@@ -5,6 +5,25 @@
 # （二进制、配置安装到 /opt/mf_proxy）
 # ---------------------------------
 
+##################################
+# 函数: 检测并设置包管理器 & 安装 certbot
+##################################
+install_certbot() {
+  if [[ -f /etc/debian_version ]]; then
+    # Debian / Ubuntu
+    apt-get update
+    apt-get install -y certbot
+  elif [[ -f /etc/centos-release || -f /etc/redhat-release ]]; then
+    # CentOS / RHEL / Rocky / Alma 等
+    # 安装 EPEL 仓库（部分系统上 certbot 需要 epel-release 才能安装）
+    yum install -y epel-release
+    yum install -y certbot
+  else
+    echo "暂不支持此系统的自动安装 certbot，请手动安装后重试。"
+    exit 1
+  fi
+}
+
 # 1. 检查是否为 root 权限
 if [[ $EUID -ne 0 ]]; then
    echo "本脚本需要 root 权限，请使用 sudo 或切换为 root 后再执行。"
@@ -56,8 +75,7 @@ fi
 
 # 3. 如果选择自动申请证书，尝试安装并使用 certbot
 if [[ "$AUTO_SSL" == "y" || "$AUTO_SSL" == "Y" ]]; then
-  echo "安装 certbot..."
-  apt-get update && apt-get install -y certbot
+  install_certbot
 
   echo "使用 certbot standalone 模式为 $DOMAIN 申请/更新证书..."
   # 停止可能占用80端口的服务（如已有mf_proxy或nginx），仅示例处理，实际请根据情况调整
